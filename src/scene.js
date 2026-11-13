@@ -988,17 +988,7 @@ export class View {
     if (!focus) return true
     const kind = object.userData.kind
     if (focus.submesh) return object === focus.submesh
-    if (focus.portFocus) {
-      if (kind === 'port') {
-        const key = `${object.userData.componentId}:${object.userData.portId}`
-        return focus.ports.has(key) || focus.anyPort.has(object.userData.portId)
-      }
-      if (kind === 'cable' || kind === 'bend') return focus.cables.has(object.userData.cableId)
-      if (kind === 'submesh') return true
-      if (kind === 'component' && object.userData.componentId === focus.host) return true
-      if (kind === 'component') return false
-      return true
-    }
+    if (focus.portFocus) return true
     if (kind === 'cable' || kind === 'bend') return focus.cables?.has(object.userData.cableId)
     if (object.userData.componentId && focus.components) return focus.components.has(object.userData.componentId)
     return true
