@@ -34,6 +34,7 @@ let poseMark = false
 const ui = mount({
   onMode: (mode) => {
     uiState = { ...uiState, mode }
+    pinInspect()
     view.setMode(mode)
     publish(false)
   },
@@ -122,7 +123,7 @@ const ui = mount({
 
 const view = new View(document.getElementById('sahne'), {
   modelBuffer,
-  inspectModelId: () => uiState.inspectId || state.components.find((item) => item.id === uiState.selection?.id)?.modelId,
+  inspectModelId: () => uiState.inspectId || inspectFallback(),
   status: (text) => ui.status(text),
   onSelect: (selection) => select(selection),
   onPort: async (port) => {
@@ -184,7 +185,21 @@ const view = new View(document.getElementById('sahne'), {
   }
 })
 
+function inspectFallback() {
+  return state.components.find((item) => item.id === uiState.selection?.id)?.modelId
+    || view.inspectRoot?.userData?.modelId
+    || state.models[0]?.id
+    || ''
+}
+
+function pinInspect() {
+  if (uiState.mode !== 'incele' || uiState.inspectId) return
+  const modelId = inspectFallback()
+  if (modelId) uiState = { ...uiState, inspectId: modelId }
+}
+
 function select(selection) {
+  pinInspect()
   uiState = { ...uiState, selection }
   if (selection?.kind === 'port' && uiState.tool !== 'kablo') {
     uiState = { ...uiState, tool: 'tasi' }
