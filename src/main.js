@@ -113,7 +113,7 @@ const ui = mount({
       const next = JSON.parse(await file.text())
       if (next.version !== 1) throw new Error('sürüm')
       uiState = { ...uiState, selection: null }
-      commit(next, 'Düzenek açıldı.')
+      commit(next, 'Proje açıldı.')
     } catch {
       ui.status('Bu dosya açılamadı.')
     }

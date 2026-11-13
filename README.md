@@ -1,4 +1,4 @@
-# Düzenek
+# Tesisat
 
 GLB modelleri yerleştirip port ve kablo şemasını tarayıcıda düzenlemek için yerel bir uygulama.
 
