@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="data:,">
+  <title>Düzenek</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="ust">
+      <h1>Düzenek</h1>
+      <div class="sekme" focusgroup="tablist nomemory" role="tablist" aria-label="Görünüm">
+        <button type="button" role="tab" id="tab-incele" data-mode="incele" aria-selected="false">İncele</button>
+        <button type="button" role="tab" id="tab-yerlesim" data-mode="yerlesim" aria-selected="true" focusgroupstart>Yerleşim</button>
+        <button type="button" role="tab" id="tab-sema" data-mode="sema" aria-selected="false">Şema</button>
+      </div>
+      <label class="ad">Proje
+        <input id="proje-ad" type="text" value="Adsız düzenek" autocomplete="off">
+      </label>
+      <button type="button" id="yeni">Yeni</button>
+      <button type="button" id="indir">İndir</button>
+      <button type="button" id="ac">Aç</button>
+      <input id="json-dosya" type="file" accept="application/json,.json" hidden>
+      <p id="durum" role="status"></p>
+      <button type="button" id="ayarlar" popovertarget="ayar-panel" aria-expanded="false">Ayarlar</button>
+    </header>
+
+    <div class="arac" role="toolbar" focusgroup="toolbar wrap" aria-label="Düzenleme" aria-controls="gorunum">
+      <div role="group" aria-label="Araç">
+        <button type="button" data-tool="sec" aria-pressed="true">Seç</button>
+        <button type="button" data-tool="tasi" aria-pressed="false">Taşı</button>
+        <button type="button" data-tool="dondur" aria-pressed="false">Döndür</button>
+        <button type="button" data-tool="port" aria-pressed="false">Port işaretle</button>
+        <button type="button" data-tool="kablo" aria-pressed="false">Kablo yerleştir</button>
+      </div>
+      <span role="separator" aria-orientation="vertical"></span>
+      <div role="group" aria-label="Görünen kablo türleri">
+        <button type="button" data-filter="sma" aria-pressed="true">RF SMA</button>
+        <button type="button" data-filter="ntype" aria-pressed="true">RF N</button>
+        <button type="button" data-filter="usb2" aria-pressed="true">USB 2.0</button>
+        <button type="button" data-filter="usb3" aria-pressed="true">USB 3.0</button>
+        <button type="button" data-filter="usbc" aria-pressed="true">USB Type-C</button>
+        <button type="button" data-filter="ag" aria-pressed="true">Ethernet</button>
+        <button type="button" data-filter="guc" aria-pressed="true">Güç</button>
+      </div>
+    </div>
+    <p id="ipucu">Bir parçanın veya kablonun üzerine gel. Bağlı uçlar açık kalır, kalan kararır.</p>
+
+    <div class="alan">
+      <aside class="yan" id="kutuphane">
+        <section>
+          <h2>Modeller</h2>
+          <button type="button" id="yukle">Model yükle</button>
+          <input id="dosya" type="file" accept=".glb,model/gltf-binary" multiple hidden>
+          <p class="not">GLB dosyasını buraya bırak.</p>
+          <ul id="modeller"></ul>
+        </section>
+        <section>
+          <h2>Parçalar</h2>
+          <ul id="parcalar"></ul>
+        </section>
+        <section>
+          <h2>Kablolar</h2>
+          <ul id="kablolar"></ul>
+        </section>
+      </aside>
+
+      <div id="gorunum" role="tabpanel" aria-labelledby="tab-yerlesim" tabindex="0">
+        <canvas id="sahne" aria-label="Üç boyutlu görünüm"></canvas>
+        <p id="bos">Modeli incele, port işaretle, sahneye koy, kablo yerleştir.</p>
+      </div>
+
+      <aside class="yan" id="denetim">
+        <h2>Seçili</h2>
+        <div id="secili"></div>
+        <details>
+          <summary>Kısayollar</summary>
+          <ul class="kisayol">
+            <li>W A S D ve yön tuşları sahneyi kaydırır. Shift hızlandırır.</li>
+            <li>1 incele, 2 yerleşim, 3 şema</li>
+            <li>F kadraj</li>
+            <li>Ctrl+Z geri al</li>
+            <li>Delete sil</li>
+            <li>Esc kabloyu iptal eder</li>
+          </ul>
+        </details>
+      </aside>
+    </div>
+  </div>
+
+  <dialog id="ayar-panel" popover="auto" aria-labelledby="ayar-baslik">
+    <h2 id="ayar-baslik">Ayarlar</h2>
+    <div class="ayar">
+      <label>Parlaklık
+        <input id="ayar-parlaklik" type="range" min="0.15" max="1.8" step="0.05" value="0.65">
+      </label>
+      <label>Odak dışı parlaklık
+        <input id="ayar-karartma" type="range" min="0.05" max="1" step="0.05" value="0.4">
+      </label>
+    </div>
+    <button type="button" id="ayar-kapat">Kapat</button>
+  </dialog>
+
+  <dialog id="port-tur" aria-labelledby="port-tur-baslik">
+    <form method="dialog">
+      <h2 id="port-tur-baslik">Port türü</h2>
+      <p>Bu yüzey kablo ucu olur.</p>
+      <div class="satir">
+        <button value="cancel" autofocus>Vazgeç</button>
+        <button value="sma">RF SMA</button>
+        <button value="ntype">RF N</button>
+        <button value="usb2">USB 2.0</button>
+        <button value="usb3">USB 3.0</button>
+        <button value="usbc">USB Type-C</button>
+        <button value="ag">Ethernet</button>
+        <button value="guc">Güç</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="ad" aria-labelledby="ad-baslik">
+    <form method="dialog">
+      <h2 id="ad-baslik">Ad</h2>
+      <label>Ad <input name="ad" autocomplete="off" required autofocus></label>
+      <div class="satir">
+        <button value="ok">Tamam</button>
+        <button value="cancel">Vazgeç</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="onay" aria-labelledby="onay-baslik">
+    <form method="dialog">
+      <h2 id="onay-baslik">Onay</h2>
+      <p id="onay-metin"></p>
+      <div class="satir">
+        <button value="cancel" autofocus>Vazgeç</button>
+        <button id="onay-ok" value="ok">Sil</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
