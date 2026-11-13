@@ -27,6 +27,7 @@ export function flyDelta(camera, input, distance) {
   const move = new THREE.Vector3()
   move.addScaledVector(fwd, input.forward || 0)
   move.addScaledVector(right, input.strafe || 0)
+  move.addScaledVector(UP, input.lift || 0)
   if (move.lengthSq() < 1e-8) return move
   return move.normalize().multiplyScalar(distance)
 }
