@@ -34,7 +34,7 @@ export function focusFor(state, hit) {
       ports.add(`${cable.a.componentId}:${cable.a.portId}`)
       ports.add(`${cable.b.componentId}:${cable.b.portId}`)
     }
-    return { portFocus: true, ports, anyPort, cables }
+    return { portFocus: true, ports, anyPort, cables, host: hit.componentId }
   }
   if (hit.kind === 'component') {
     const hidden = new Set(state.hiddenTypes || [])

@@ -899,9 +899,9 @@ export class View {
       }
     }
     const rotate = this.tool === 'dondur'
-    if (this.selection?.kind === 'port' && !rotate) {
+    if (this.selection?.kind === 'port') {
       this.transform.detach()
-      this.setBox(group)
+      this.setBox(null)
       return
     }
     const editing = Boolean(group) && this.tool !== 'kablo'
@@ -961,10 +961,25 @@ export class View {
       for (const mesh of this.cableMeshes.values()) paintNode(mesh)
       paintNode(this.bendRoot)
     }
+    this.markActivePorts(focus)
     if (this.pending) {
       const pivot = this.pivots.get(`${this.pending.componentId}:${this.pending.portId}`)
       pivot?.traverse((object) => {
         if (object.isMesh && object.material?.emissive) object.material.emissive.set(0xf2c14e)
+      })
+    }
+  }
+
+  markActivePorts(focus) {
+    const roots = this.mode === 'incele' ? [this.inspectRoot] : [...this.groups.values()]
+    for (const root of roots) {
+      root.traverse((object) => {
+        if (!object.isMesh || object.userData.kind !== 'port' || !object.material?.emissive) return
+        const key = `${object.userData.componentId}:${object.userData.portId}`
+        const on = Boolean(focus?.portFocus) && (focus.ports.has(key) || focus.anyPort.has(object.userData.portId))
+        if (!on) return
+        object.material.emissive.set(0x8a5a18)
+        object.material.emissiveIntensity = 0.35
       })
     }
   }
@@ -979,7 +994,10 @@ export class View {
         return focus.ports.has(key) || focus.anyPort.has(object.userData.portId)
       }
       if (kind === 'cable' || kind === 'bend') return focus.cables.has(object.userData.cableId)
-      return false
+      if (kind === 'submesh') return true
+      if (kind === 'component' && object.userData.componentId === focus.host) return true
+      if (kind === 'component') return false
+      return true
     }
     if (kind === 'cable' || kind === 'bend') return focus.cables?.has(object.userData.cableId)
     if (object.userData.componentId && focus.components) return focus.components.has(object.userData.componentId)
