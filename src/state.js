@@ -47,6 +47,40 @@ export function componentPorts(state, component) {
   return [...(model?.ports || []), ...(component.ports || [])]
 }
 
+export function portRecord(state, componentId, portId) {
+  const component = state.components.find((item) => item.id === componentId)
+  if (!component) return null
+  return componentPorts(state, component).find((port) => port.id === portId) || null
+}
+
+export function portTypeOf(state, componentId, portId) {
+  return portRecord(state, componentId, portId)?.type || ''
+}
+
+const MIXED_CABLES = {
+  'ntype+sma': { type: 'rf', name: 'RF SMA–N' },
+  'ag+usbc': { type: 'ag', name: 'Ethernet–Type-C' },
+  'usb2+usbc': { type: 'usb2', name: 'USB 2.0–Type-C' },
+  'usb3+usbc': { type: 'usb3', name: 'USB 3.0–Type-C' },
+  'usb2+usb3': { type: 'usb3', name: 'USB 2.0–3.0' }
+}
+
+export function matchCable(typeA, typeB) {
+  if (!typeA || !typeB) return null
+  if (typeA === typeB) return { type: typeA, name: typeName(typeA) }
+  return MIXED_CABLES[[typeA, typeB].sort().join('+')] || null
+}
+
+export function cableShown(state, cable) {
+  const hidden = new Set(state.hiddenTypes || [])
+  const ends = [
+    portTypeOf(state, cable.a.componentId, cable.a.portId),
+    portTypeOf(state, cable.b.componentId, cable.b.portId)
+  ].filter(Boolean)
+  const types = ends.length ? ends : [cable.type]
+  return types.some((type) => !hidden.has(type))
+}
+
 export function addModelPort(state, modelId, port) {
   return {
     ...state,
@@ -172,11 +206,11 @@ export function removePort(state, componentId, portId) {
   }
 }
 
-export function addCable(state, from, to, type) {
+export function addCable(state, from, to, type, name) {
   const count = state.cables.filter((cable) => cable.type === type).length + 1
   const cable = {
     id: uid(),
-    name: `${typeName(type)} ${count}`,
+    name: `${name || typeName(type)} ${count}`,
     type,
     a: from,
     b: to,
@@ -211,6 +245,5 @@ export function componentName(state, id) {
 }
 
 export function portName(state, componentId, portId) {
-  const component = state.components.find((item) => item.id === componentId)
-  return component?.ports.find((port) => port.id === portId)?.name || 'Uç'
+  return portRecord(state, componentId, portId)?.name || 'Uç'
 }

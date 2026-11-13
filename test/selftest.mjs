@@ -4,7 +4,7 @@ import { headingFromQuaternion, portOrientation, portRoll } from '../src/yaw.js'
 import { softSnap, softSnapAngle } from '../src/snap.js'
 import { focusFor } from '../src/focus.js'
 import { routeClear, routePlacement, routeSchema, routeThrough } from '../src/route.js'
-import { addCable, addComponent, addModel, addPort, emptyState, uid } from '../src/state.js'
+import { addCable, addComponent, addModel, addPort, cableShown, emptyState, matchCable, uid } from '../src/state.js'
 import fs from 'node:fs'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
@@ -42,6 +42,19 @@ check('parça odağı bağlı parçayı tutar', partFocus.components.has(b.id) &
 
 const hidden = focusFor({ ...next, hiddenTypes: ['guc'] }, { kind: 'component', componentId: a.id })
 check('gizli tür odağa girmez', hidden.cables.size === 0 && hidden.components.size === 1)
+check('aynı tür bağlanır', matchCable('sma', 'sma')?.type === 'sma')
+check('SMA ile N bağlanır', matchCable('sma', 'ntype')?.name === 'RF SMA–N')
+check('Ethernet ile Type-C bağlanır', matchCable('usbc', 'ag')?.name === 'Ethernet–Type-C')
+check('USB 2 ile Type-C bağlanır', matchCable('usb2', 'usbc')?.type === 'usb2')
+check('SMA ile Ethernet bağlanmaz', matchCable('sma', 'ag') === null)
+check('güç yalnız güce gider', matchCable('guc', 'usbc') === null && matchCable('guc', 'guc')?.type === 'guc')
+const mixed = addCable(next, { componentId: a.id, portId: pa.id }, { componentId: b.id, portId: pb.id }, 'rf', 'RF SMA–N')
+mixed.components = mixed.components.map((item) => ({
+  ...item,
+  ports: item.ports.map((port) => ({ ...port, type: port.id === pa.id ? 'sma' : 'ntype' }))
+}))
+check('SMA–N kablosu N filtresi açıkken durur', cableShown({ ...mixed, hiddenTypes: ['sma'] }, mixed.cables.at(-1)))
+check('iki uç da gizlenince kablo gider', !cableShown({ ...mixed, hiddenTypes: ['sma', 'ntype'] }, mixed.cables.at(-1)))
 
 const placed = routePlacement([0, 0, 0], [0, 1, 0], [1, 0, 0], [0, 1, 0], [0, 0, 0])
 check('yerleşim kablosu sarkar', placed && placed[2][1] < 0)

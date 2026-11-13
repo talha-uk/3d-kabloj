@@ -9,6 +9,7 @@ import { flyDelta } from './fly.js'
 import { headingFromQuaternion, portOrientation, portRoll, wrapAngle } from './yaw.js'
 import { softSnap, softSnapAngle } from './snap.js'
 import { CABLE_RADIUS, SCHEMA_LIFT, routeClear, routeSchema, routeVia } from './route.js'
+import { cableShown } from './state.js'
 const CABLE_COLOR = {
   sma: 0xd4af37,
   rf: 0xd4af37,
@@ -737,8 +738,7 @@ export class View {
   syncCables() {
     this.clearCables()
     if (!this.state || this.mode === 'incele') return
-    const hidden = new Set(this.state.hiddenTypes || [])
-    const visible = this.state.cables.filter((cable) => !hidden.has(cable.type))
+    const visible = this.state.cables.filter((cable) => cableShown(this.state, cable))
     const frames = new Map()
     const lanes = []
     for (const cable of visible) {
@@ -1391,6 +1391,7 @@ export class View {
       return
     }
     const ends = { a: this.pending, b: { componentId: hit.componentId, portId: hit.portId } }
+    if (this.hooks.cableOk && !this.hooks.cableOk(ends)) return
     this.pending = null
     this.hooks.onCable?.(ends)
   }

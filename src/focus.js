@@ -1,5 +1,7 @@
 // Üzerine gelinen parça veya kablo açık kalır. Bağlandığı uçlar da açık kalır.
 
+import { cableShown } from './state.js'
+
 export function focusFor(state, hit) {
   if (!hit) return null
   if (hit.kind === 'submesh') return { submesh: hit.mesh }
@@ -12,7 +14,6 @@ export function focusFor(state, hit) {
     }
   }
   if (hit.kind === 'port') {
-    const hidden = new Set(state.hiddenTypes || [])
     const ports = new Set()
     const anyPort = new Set()
     const cables = new Set()
@@ -24,7 +25,7 @@ export function focusFor(state, hit) {
       ports.add(`${hit.componentId}:${hit.portId}`)
     }
     for (const cable of state.cables) {
-      if (hidden.has(cable.type)) continue
+      if (!cableShown(state, cable)) continue
       const touch = broad
         ? cable.a.portId === hit.portId || cable.b.portId === hit.portId
         : (cable.a.componentId === hit.componentId && cable.a.portId === hit.portId)
@@ -37,11 +38,10 @@ export function focusFor(state, hit) {
     return { portFocus: true, ports, anyPort, cables, host: hit.componentId }
   }
   if (hit.kind === 'component') {
-    const hidden = new Set(state.hiddenTypes || [])
     const components = new Set([hit.componentId])
     const cables = new Set()
     for (const cable of state.cables) {
-      if (hidden.has(cable.type)) continue
+      if (!cableShown(state, cable)) continue
       if (cable.a.componentId !== hit.componentId && cable.b.componentId !== hit.componentId) continue
       cables.add(cable.id)
       components.add(cable.a.componentId)

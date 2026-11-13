@@ -1,4 +1,4 @@
-import { CABLE_TYPES, componentName, componentPorts, portName } from './state.js'
+import { componentName, componentPorts, matchCable, portName, portTypeOf, typeName } from './state.js'
 import { bindTabs, bindToolbar } from './keys.js'
 
 const HINT = {
@@ -6,7 +6,7 @@ const HINT = {
   tasi: 'Parçayı oklarla taşı. Herhangi bir portu tutup modelin yüzeyinde kaydır.',
   dondur: 'Modeli yeşil halkadan çevir. Port seçiliyken portu tutup çevirirsin, halka portu gömmez.',
   port: 'İncelemede yüzeye tıkla. RF SMA, RF N, USB 2.0, USB 3.0, USB Type-C, Ethernet veya Güç.',
-  kablo: 'Kablo yerleştir: önce bir port, sonra öteki. Seçili kabloya orta tuşla kıvrım ekle.'
+  kablo: 'Önce bir port, sonra öteki. Aynı tür bağlanır. SMA–N, Ethernet–Type-C ve USB ara kablosu da olur.'
 }
 
 function button(label, onClick) {
@@ -145,7 +145,14 @@ export function mount(hooks) {
       const row = document.createElement('li')
       const from = `${componentName(state, cable.a.componentId)} ${portName(state, cable.a.componentId, cable.a.portId)}`
       const to = `${componentName(state, cable.b.componentId)} ${portName(state, cable.b.componentId, cable.b.portId)}`
-      const name = button(`${cable.name}: ${from} → ${to}`, () => hooks.onSelect?.({ kind: 'cable', id: cable.id }))
+      const pair = matchCable(
+        portTypeOf(state, cable.a.componentId, cable.a.portId),
+        portTypeOf(state, cable.b.componentId, cable.b.portId)
+      )
+      const bad = portTypeOf(state, cable.a.componentId, cable.a.portId)
+        && portTypeOf(state, cable.b.componentId, cable.b.portId)
+        && !pair
+      const name = button(`${cable.name}: ${from} → ${to}${bad ? ' · uyumsuz' : ''}`, () => hooks.onSelect?.({ kind: 'cable', id: cable.id }))
       name.setAttribute('aria-pressed', ui.selection?.kind === 'cable' && ui.selection.id === cable.id ? 'true' : 'false')
       name.addEventListener('pointerenter', () => hooks.onHover?.({ kind: 'cable', cableId: cable.id }))
       name.addEventListener('pointerleave', () => hooks.onHover?.(null))
@@ -223,19 +230,16 @@ export function mount(hooks) {
       name.value = cable.name
       name.addEventListener('change', () => hooks.onRenameCable?.(cable.id, name.value.trim() || cable.name))
       nameLabel.append(name)
-      const typeLabel = document.createElement('label')
-      typeLabel.textContent = 'Tür'
-      const select = document.createElement('select')
-      for (const type of CABLE_TYPES) {
-        const option = document.createElement('option')
-        option.value = type.id
-        option.textContent = type.name
-        option.selected = type.id === cable.type
-        select.append(option)
-      }
-      select.addEventListener('change', () => hooks.onCableType?.(cable.id, select.value))
-      typeLabel.append(select)
-      form.append(nameLabel, typeLabel)
+      const aType = portTypeOf(state, cable.a.componentId, cable.a.portId)
+      const bType = portTypeOf(state, cable.b.componentId, cable.b.portId)
+      const match = matchCable(aType, bType)
+      const kind = document.createElement('p')
+      kind.textContent = match
+        ? match.name
+        : aType && bType
+          ? `${typeName(aType)} ile ${typeName(bType)} bağlanmaz.`
+          : typeName(cable.type)
+      form.append(nameLabel, kind)
       secili.append(form, button('Sil', () => hooks.onDeleteCable?.(cable.id)))
       return
     }

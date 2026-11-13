@@ -2,6 +2,9 @@ import { View } from './scene.js'
 import { mount } from './ui.js'
 import {
   addCable,
+  matchCable,
+  portTypeOf,
+  typeName,
   addComponent,
   addModel,
   addModelPort,
@@ -14,9 +17,7 @@ import {
   removeModel,
   removeModelPort,
   removePort,
-  componentPorts,
   toggleType,
-  typeName,
   uid,
   updateCable,
   updateComponent
@@ -151,10 +152,22 @@ const view = new View(document.getElementById('sahne'), {
       normal: port.normal
     }), 'Port işaretlendi.')
   },
+  cableOk: (ends) => {
+    const a = portTypeOf(state, ends.a.componentId, ends.a.portId)
+    const b = portTypeOf(state, ends.b.componentId, ends.b.portId)
+    if (matchCable(a, b)) return true
+    const left = typeName(a)
+    const right = typeName(b)
+    ui.status(a && b ? `${left} ile ${right} bağlanmaz.` : 'Uç türü belli değil.')
+    return false
+  },
   onCable: (ends) => {
-    const source = state.components.find((item) => item.id === ends.a.componentId)
-    const type = source ? componentPorts(state, source).find((port) => port.id === ends.a.portId)?.type || 'rf' : 'rf'
-    commit(addCable(state, ends.a, ends.b, type), 'Kablo bağlandı.')
+    const match = matchCable(
+      portTypeOf(state, ends.a.componentId, ends.a.portId),
+      portTypeOf(state, ends.b.componentId, ends.b.portId)
+    )
+    if (!match) return
+    commit(addCable(state, ends.a, ends.b, match.type, match.name), 'Kablo bağlandı.')
   },
   onPoseStart: () => {
     if (poseMark) return
