@@ -41,7 +41,7 @@ function addEthernetPort(pivot, radius, height, lift, component, port) {
   const width = radius * 2.7
   const face = radius * 2.25
   const depth = height
-  const shell = remember(new THREE.MeshStandardMaterial({ color: 0xc5ccd1, metalness: 0.78, roughness: 0.28 }))
+  const shell = remember(new THREE.MeshStandardMaterial({ color: 0xd5dde4, metalness: 0.35, roughness: 0.34 }))
   const plastic = remember(new THREE.MeshStandardMaterial({ color: 0x1a1c1f, metalness: 0.04, roughness: 0.58 }))
   const cavity = remember(new THREE.MeshStandardMaterial({ color: 0x050607, metalness: 0.08, roughness: 0.82 }))
   const gold = remember(new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.92, roughness: 0.22 }))
@@ -66,33 +66,163 @@ function addEthernetPort(pivot, radius, height, lift, component, port) {
   }
 }
 
-function portProfile(type, radius) {
-  if (type === 'ag') return { kind: 'box', width: radius * 2.35, breadth: radius * 2.35 }
-  if (type === 'usb' || type === 'usb2' || type === 'usb3') return { kind: 'box', width: radius * 3.4, breadth: radius * 1.2 }
-  if (type === 'usbc') return { kind: 'usbc', width: radius * 2.8, breadth: radius * 1.05 }
-  return { kind: 'round', width: radius * 2, breadth: radius * 2 }
+function faceSign(pivot) {
+  const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(pivot.quaternion.clone().invert())
+  if (Math.abs(localUp.z) >= Math.abs(localUp.x)) return Math.sign(localUp.z) || 1
+  return 1
 }
 
-function portGeometry(profile, depth) {
-  if (profile.kind === 'usbc') {
-    const shape = new THREE.Shape()
-    const reach = profile.breadth / 2
-    const half = Math.max(profile.width / 2, reach + 1e-4)
-    shape.absarc(half - reach, 0, reach, -Math.PI / 2, Math.PI / 2, false)
-    shape.absarc(-half + reach, 0, reach, Math.PI / 2, Math.PI * 1.5, false)
-    const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 8 })
-    geometry.rotateX(-Math.PI / 2)
-    geometry.userData.owned = true
-    return geometry
-  }
-  if (profile.kind === 'box') {
-    const geometry = new THREE.BoxGeometry(profile.width, depth, profile.breadth)
-    geometry.userData.owned = true
-    return geometry
-  }
-  const geometry = new THREE.CylinderGeometry(profile.width / 2, profile.width / 2, depth, 16)
+function portMaterial(color, metalness, roughness) {
+  return remember(new THREE.MeshStandardMaterial({ color, metalness, roughness }))
+}
+
+function ownedCylinder(radiusTop, radiusBottom, length, segments) {
+  const geometry = new THREE.CylinderGeometry(radiusTop, radiusBottom, length, segments)
   geometry.userData.owned = true
   return geometry
+}
+
+function ownedRing(inner, outer) {
+  const geometry = new THREE.RingGeometry(inner, outer, 24)
+  geometry.rotateX(-Math.PI / 2)
+  geometry.userData.owned = true
+  return geometry
+}
+
+function ownedStadium(width, breadth, depth) {
+  const shape = new THREE.Shape()
+  const reach = breadth / 2
+  const half = Math.max(width / 2, reach + 1e-4)
+  shape.absarc(half - reach, 0, reach, -Math.PI / 2, Math.PI / 2, false)
+  shape.absarc(-half + reach, 0, reach, Math.PI / 2, Math.PI * 1.5, false)
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 10 })
+  geometry.rotateX(-Math.PI / 2)
+  geometry.userData.owned = true
+  return geometry
+}
+
+function putPort(pivot, geometry, material, component, port, x, y, z) {
+  const mesh = tagPort(new THREE.Mesh(geometry, material), component, port)
+  mesh.position.set(x, y, z)
+  pivot.add(mesh)
+  return mesh
+}
+
+function addCoaxPort(pivot, radius, height, lift, component, port, gold) {
+  const body = portMaterial(gold ? 0xf0c14d : 0xe7eef3, gold ? 0.34 : 0.22, 0.4)
+  const insulator = portMaterial(0xf4f1ea, 0.02, 0.46)
+  const bore = portMaterial(0x101214, 0.12, 0.62)
+  const pin = portMaterial(0xe6c56b, 0.92, 0.18)
+  const nut = radius * 1.05
+  const barrel = radius * (gold ? 0.62 : 0.7)
+  putPort(pivot, ownedCylinder(nut, nut, height * 0.24, 6), body, component, port, 0, lift + height * 0.12, 0)
+  putPort(pivot, ownedCylinder(barrel, barrel, height * 0.68, 20), body, component, port, 0, lift + height * 0.5, 0)
+  for (let ring = 0; ring < 4; ring += 1) {
+    putPort(
+      pivot,
+      ownedCylinder(barrel * 1.12, barrel * 1.12, height * 0.035, 20),
+      body,
+      component,
+      port,
+      0,
+      lift + height * (0.32 + ring * 0.12),
+      0
+    )
+  }
+  const face = lift + height * 0.9
+  putPort(pivot, ownedRing(barrel * 0.16, barrel * 0.62), insulator, component, port, 0, face, 0)
+  putPort(pivot, ownedRing(barrel * 0.1, barrel * 0.2), bore, component, port, 0, face + height * 0.012, 0)
+  putPort(pivot, ownedCylinder(barrel * 0.08, barrel * 0.08, height * 0.16, 8), pin, component, port, 0, face - height * 0.05, 0)
+}
+
+function addUsbAPort(pivot, radius, height, lift, component, port, blue) {
+  const shell = portMaterial(0xf0f3f6, 0.22, 0.38)
+  const house = portMaterial(blue ? 0x1d4ed8 : 0x141414, 0.08, 0.5)
+  const cavity = portMaterial(0x07080a, 0.04, 0.72)
+  const tongueMat = portMaterial(blue ? 0x2563eb : 0x0e1014, 0.05, 0.42)
+  const gold = portMaterial(0xd4af37, 0.92, 0.2)
+  const width = radius * 3.35
+  const thick = radius * 1.22
+  const depth = height
+  const up = faceSign(pivot)
+  putPort(pivot, ownedBox(width * 1.16, depth * 0.2, thick * 1.42), house, component, port, 0, lift + depth * 0.1, 0)
+  putPort(pivot, ownedBox(width, depth * 0.62, thick), shell, component, port, 0, lift + depth * 0.4, 0)
+  putPort(pivot, ownedBox(width * 0.8, depth * 0.2, thick * 0.62), cavity, component, port, 0, lift + depth * 0.42, 0)
+  const tongueZ = up * thick * 0.14
+  putPort(pivot, ownedBox(width * 0.68, depth * 0.28, thick * 0.18), tongueMat, component, port, 0, lift + depth * 0.58, tongueZ)
+  const pins = blue ? 9 : 4
+  const span = width * (blue ? 0.62 : 0.52)
+  for (let index = 0; index < pins; index += 1) {
+    const back = blue && index >= 4
+    const slot = back ? index - 4 : index
+    const count = back ? 5 : 4
+    const contact = putPort(
+      pivot,
+      ownedBox(width * (back ? 0.028 : 0.04), depth * 0.04, thick * 0.07),
+      gold,
+      component,
+      port,
+      -span / 2 + (span / (count - 1)) * slot,
+      lift + depth * (back ? 0.62 : 0.74),
+      tongueZ - up * thick * (back ? 0.02 : 0.12)
+    )
+    contact.castShadow = false
+  }
+}
+
+function addUsbCPort(pivot, radius, height, lift, component, port) {
+  const shell = portMaterial(0xf4f7f8, 0.2, 0.34)
+  const rim = portMaterial(0xb7c0c8, 0.25, 0.4)
+  const cavity = portMaterial(0x121418, 0.08, 0.6)
+  const gold = portMaterial(0xd4af37, 0.92, 0.2)
+  const width = radius * 2.95
+  const thick = radius * 1.02
+  const depth = height * 0.9
+  putPort(pivot, ownedStadium(width, thick, depth), shell, component, port, 0, lift, 0)
+  putPort(pivot, ownedStadium(width * 1.12, thick * 1.18, depth * 0.12), rim, component, port, 0, lift, 0)
+  putPort(pivot, ownedStadium(width * 0.72, thick * 0.48, depth * 0.35), cavity, component, port, 0, lift + depth * 0.28, 0)
+  const up = faceSign(pivot)
+  const tongueZ = up * thick * 0.02
+  putPort(pivot, ownedBox(width * 0.62, depth * 0.34, thick * 0.14), cavity, component, port, 0, lift + depth * 0.48, tongueZ)
+  const span = width * 0.5
+  for (let index = 0; index < 8; index += 1) {
+    putPort(
+      pivot,
+      ownedBox(width * 0.022, depth * 0.035, thick * 0.05),
+      gold,
+      component,
+      port,
+      -span / 2 + (span / 7) * index,
+      lift + depth * 0.78,
+      tongueZ - up * thick * 0.07
+    )
+  }
+}
+
+function addPowerPort(pivot, radius, height, lift, component, port) {
+  const red = portMaterial(0xc62828, 0.12, 0.48)
+  const black = portMaterial(0x141414, 0.08, 0.55)
+  const steel = portMaterial(0xf0f3f6, 0.28, 0.34)
+  const bore = portMaterial(0x0c0e10, 0.1, 0.66)
+  const pin = portMaterial(0xe6c56b, 0.9, 0.2)
+  putPort(pivot, ownedCylinder(radius * 1.32, radius * 1.32, height * 0.16, 20), black, component, port, 0, lift + height * 0.08, 0)
+  putPort(pivot, ownedCylinder(radius * 1.05, radius * 1.05, height * 0.36, 20), red, component, port, 0, lift + height * 0.3, 0)
+  for (let stripe = 0; stripe < 4; stripe += 1) {
+    putPort(
+      pivot,
+      ownedCylinder(radius * 1.08, radius * 1.08, height * 0.04, 20),
+      stripe % 2 ? black : red,
+      component,
+      port,
+      0,
+      lift + height * (0.46 + stripe * 0.06),
+      0
+    )
+  }
+  putPort(pivot, ownedCylinder(radius * 0.5, radius * 0.5, height * 0.28, 20), steel, component, port, 0, lift + height * 0.7, 0)
+  const face = lift + height * 0.86
+  putPort(pivot, ownedRing(radius * 0.14, radius * 0.34), bore, component, port, 0, face, 0)
+  putPort(pivot, ownedCylinder(radius * 0.08, radius * 0.08, height * 0.16, 8), pin, component, port, 0, face - height * 0.06, 0)
 }
 
 function remember(material) {
@@ -606,54 +736,14 @@ export class View {
     const bulk = port.type === 'ntype' ? 1.85 : port.type === 'ag' ? 1.74 : port.type === 'sma' || port.type === 'rf' ? 0.72 : 1
     const radius = 0.016 / fitScale * bulk
     const height = 0.042 / fitScale * (port.type === 'ntype' ? 1.35 : port.type === 'ag' ? 1.38 : 1)
-    if (port.type === 'ag') {
-      addEthernetPort(pivot, radius, height, lift, component, port)
-      return pivot
-    }
-    const profile = portProfile(port.type, radius)
-    const marker = {
-      sma: 0xd4af37,
-      rf: 0xd4af37,
-      ntype: 0x8e959b,
-      usb2: 0x161616,
-      usb: 0x161616,
-      usb3: 0x1d4ed8,
-      usbc: 0xd5dbe3,
-      ag: 0xf7f7f7,
-      guc: 0xc62828
-    }
-    const material = remember(new THREE.MeshStandardMaterial({
-      color: marker[port.type] || 0xd5dbe2,
-      metalness: port.type === 'sma' || port.type === 'rf' || port.type === 'ntype' || port.type === 'usbc' ? 0.82 : 0.35,
-      roughness: port.type === 'sma' || port.type === 'rf' ? 0.28 : 0.45
-    }))
-    const bodyGeometry = portGeometry(profile, height)
-    const body = new THREE.Mesh(bodyGeometry, material)
-    body.position.y = (profile.kind === 'usbc' ? 0 : height / 2) + lift
-    body.castShadow = true
-    const collarMaterial = material.clone()
-    collarMaterial.userData = {}
-    if (port.type === 'guc') collarMaterial.color.set(0x141414)
-    else if (port.type === 'ag') collarMaterial.color.set(0x9aa0a6)
-    else if (port.type === 'usb3') collarMaterial.color.set(0x0b1f4d)
-    else if (port.type === 'usbc') collarMaterial.color.set(0x6e7580)
-    remember(collarMaterial)
-    const collarDepth = height * 0.22
-    const collarProfile = {
-      kind: profile.kind,
-      width: profile.width * 1.28,
-      breadth: profile.breadth * 1.28
-    }
-    const collarGeometry = portGeometry(collarProfile, collarDepth)
-    const collar = new THREE.Mesh(collarGeometry, collarMaterial)
-    collar.position.y = (profile.kind === 'usbc' ? 0 : collarDepth / 2) + lift
-    collar.castShadow = true
-    for (const mesh of [body, collar]) {
-      mesh.userData.kind = 'port'
-      mesh.userData.componentId = component.id
-      mesh.userData.portId = port.id
-    }
-    pivot.add(body, collar)
+    const kind = port.type
+    if (kind === 'ag') addEthernetPort(pivot, radius, height, lift, component, port)
+    else if (kind === 'sma' || kind === 'rf') addCoaxPort(pivot, radius, height, lift, component, port, true)
+    else if (kind === 'ntype') addCoaxPort(pivot, radius, height, lift, component, port, false)
+    else if (kind === 'usb3') addUsbAPort(pivot, radius, height, lift, component, port, true)
+    else if (kind === 'usb' || kind === 'usb2') addUsbAPort(pivot, radius, height, lift, component, port, false)
+    else if (kind === 'usbc') addUsbCPort(pivot, radius, height, lift, component, port)
+    else addPowerPort(pivot, radius, height, lift, component, port)
     return pivot
   }
 
