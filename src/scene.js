@@ -306,7 +306,7 @@ export class View {
       || event.target.closest?.('[role="toolbar"], [role="tablist"], dialog')
     if (typing) return
     if (event.code === 'ShiftLeft' || event.code === 'ShiftRight') this.flyFast = true
-    if (!['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) return
+    if (!['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) return
     this.flyKeys.add(event.code)
     event.preventDefault()
   }
@@ -320,18 +320,21 @@ export class View {
     if (this.transform.dragging) return
     let forward = 0
     let strafe = 0
+    let lift = 0
     if (this.flyKeys.has('KeyW') || this.flyKeys.has('ArrowUp')) forward += 1
     if (this.flyKeys.has('KeyS') || this.flyKeys.has('ArrowDown')) forward -= 1
     if (this.flyKeys.has('KeyD') || this.flyKeys.has('ArrowRight')) strafe += 1
     if (this.flyKeys.has('KeyA') || this.flyKeys.has('ArrowLeft')) strafe -= 1
-    if (!forward && !strafe) return
+    if (this.flyKeys.has('KeyE')) lift += 1
+    if (this.flyKeys.has('KeyQ')) lift -= 1
+    if (!forward && !strafe && !lift) return
     const camera = this.activeCamera()
     camera.updateMatrixWorld(true)
     const span = this.mode === 'sema'
       ? this.viewHalf / Math.max(this.ortho.zoom, 0.2)
       : this.perspective.position.distanceTo(this.orbit.target)
     const step = Math.max(0.35, span * 0.7) * (this.flyFast ? 2.4 : 1) * dt
-    const delta = flyDelta(camera, { forward, strafe }, step)
+    const delta = flyDelta(camera, { forward, strafe, lift }, step)
     if (delta.lengthSq() < 1e-10) return
     if (this.mode === 'sema') {
       this.ortho.position.add(delta)
