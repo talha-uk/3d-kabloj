@@ -596,9 +596,9 @@ export class View {
     if (normal.lengthSq() < 1e-8) normal.set(0, 1, 0)
     pivot.quaternion.copy(portOrientation(normal, port.roll || 0))
     const lift = 0.0015 / fitScale
-    const bulk = port.type === 'ntype' ? 1.85 : port.type === 'ag' ? 1.45 : port.type === 'sma' || port.type === 'rf' ? 0.72 : 1
+    const bulk = port.type === 'ntype' ? 1.85 : port.type === 'ag' ? 1.74 : port.type === 'sma' || port.type === 'rf' ? 0.72 : 1
     const radius = 0.016 / fitScale * bulk
-    const height = 0.042 / fitScale * (port.type === 'ntype' ? 1.35 : port.type === 'ag' ? 1.15 : 1)
+    const height = 0.042 / fitScale * (port.type === 'ntype' ? 1.35 : port.type === 'ag' ? 1.38 : 1)
     if (port.type === 'ag') {
       addEthernetPort(pivot, radius, height, lift, component, port)
       return pivot
