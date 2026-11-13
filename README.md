@@ -1,6 +1,6 @@
-# Tesisat
+# Kablaj
 
-GLB modelleri yerleştirip port ve kablo şemasını tarayıcıda düzenlemek için yerel bir uygulama.
+3 boyutlu modeller için cihaz kablajı. GLB modeli yerleştirir, portları işaretler, kabloyu çizersin.
 
 ## Çalıştırma
 

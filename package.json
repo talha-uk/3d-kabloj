@@ -1,7 +1,7 @@
 {
-  "name": "tesisat",
+  "name": "kablaj",
   "private": true,
-  "description": "3B model yerleştirme, port ve kablo şeması",
+  "description": "3 boyutlu modeller için cihaz kablajı",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
