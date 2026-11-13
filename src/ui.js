@@ -272,45 +272,10 @@ export function mount(hooks) {
     secili.append(note)
   }
 
-  const parlak = document.getElementById('ayar-parlaklik')
-  const karart = document.getElementById('ayar-karartma')
-  const ayarBtn = document.getElementById('ayarlar')
-  const ayarPanel = document.getElementById('ayar-panel')
-  try {
-    const saved = JSON.parse(localStorage.getItem('duzenek-ayar') || '{}')
-    if (saved.parlaklik) parlak.value = saved.parlaklik
-    if (saved.karartma) karart.value = saved.karartma
-  } catch {
-    // Bozuk kayıt varsayılanı bozmasın.
-  }
-  const pushAyar = () => {
-    const ayar = { parlaklik: Number(parlak.value), karartma: Number(karart.value) }
-    localStorage.setItem('duzenek-ayar', JSON.stringify(ayar))
-    hooks.onAyar?.(ayar)
-  }
-  parlak.addEventListener('input', pushAyar)
-  karart.addEventListener('input', pushAyar)
-  ayarPanel.addEventListener('toggle', () => {
-    ayarBtn.setAttribute('aria-expanded', ayarPanel.matches(':popover-open') ? 'true' : 'false')
-  })
-  document.getElementById('ayar-kapat').addEventListener('click', () => {
-    if (typeof ayarPanel.hidePopover === 'function') ayarPanel.hidePopover()
-    else ayarPanel.close()
-  })
-  if (!Object.hasOwn(HTMLElement.prototype, 'popover')) {
-    ayarBtn.addEventListener('click', () => ayarPanel.showModal())
-  }
-
   return {
     render,
     status(text) {
       durum.textContent = text
-    },
-    ayar() {
-      return {
-        parlaklik: Number(document.getElementById('ayar-parlaklik').value),
-        karartma: Number(document.getElementById('ayar-karartma').value)
-      }
     },
     askType() {
       return ask(document.getElementById('port-tur'), () => {}).then((value) => (

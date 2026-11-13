@@ -167,19 +167,7 @@ h2 { font-size: 0.85rem; margin-block-end: 0.4rem; }
 .ad { display: flex; align-items: center; gap: 0.35rem; }
 .ad input { min-inline-size: 10rem; padding: 0.35rem 0.5rem; border: 1px solid var(--line); background: var(--bg); border-radius: 0.4rem; }
 
-#durum { color: var(--muted); font-size: 0.85rem; }
-#ayarlar { margin-inline-start: auto; }
-
-#ayar-panel[popover]:is(:popover-open, .\:popover-open) {
-  inset: 0.6rem 0.6rem auto auto;
-  margin: 0;
-  block-size: fit-content;
-  inline-size: min(18rem, calc(100vw - 1.2rem));
-}
-
-.ayar { display: flex; flex-direction: column; gap: 0.8rem; margin-block: 0.8rem; }
-.ayar label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.9rem; }
-.ayar input[type="range"] { width: 100%; }
+#durum { color: var(--muted); font-size: 0.85rem; margin-inline-start: auto; }
 
 .arac [role="group"] { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .arac [role="separator"] { inline-size: 1px; align-self: stretch; background: var(--line); }

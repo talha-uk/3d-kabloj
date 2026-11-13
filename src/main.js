@@ -155,10 +155,6 @@ const view = new View(document.getElementById('sahne'), {
     const type = source ? componentPorts(state, source).find((port) => port.id === ends.a.portId)?.type || 'rf' : 'rf'
     commit(addCable(state, ends.a, ends.b, type), 'Kablo bağlandı.')
   },
-  onAyar: (ayar) => {
-    view.setExposure(ayar.parlaklik)
-    view.setDim(ayar.karartma)
-  },
   onPoseStart: () => {
     if (poseMark) return
     past.push(structuredClone(state))
@@ -187,10 +183,6 @@ const view = new View(document.getElementById('sahne'), {
     publish(true)
   }
 })
-
-const ilkAyar = ui.ayar()
-view.setExposure(ilkAyar.parlaklik)
-view.setDim(ilkAyar.karartma)
 
 function select(selection) {
   uiState = { ...uiState, selection }

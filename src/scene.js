@@ -168,8 +168,8 @@ export class View {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    this.renderer.toneMappingExposure = 0.65
-    this.dim = 0.4
+    this.renderer.toneMappingExposure = 0.38
+    this.dim = 0.45
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
@@ -194,9 +194,9 @@ export class View {
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
     pmrem.dispose()
 
-    const hemi = new THREE.HemisphereLight(0xfff6ea, 0x8a8175, 0.9)
+    const hemi = new THREE.HemisphereLight(0xfff6ea, 0x8a8175, 0.55)
     this.scene.add(hemi)
-    const sun = new THREE.DirectionalLight(0xffffff, 2.6)
+    const sun = new THREE.DirectionalLight(0xffffff, 1.35)
     sun.position.set(4, 9, 3)
     sun.castShadow = true
     sun.shadow.mapSize.set(1024, 1024)
@@ -440,21 +440,6 @@ export class View {
     this.selection = selection
     this.syncGizmo()
     this.syncCables()
-    this.applyFocus()
-    this.requestRender()
-  }
-
-  setExposure(value) {
-    const next = Number(value)
-    if (!Number.isFinite(next)) return
-    this.renderer.toneMappingExposure = next
-    this.requestRender()
-  }
-
-  setDim(value) {
-    const next = Number(value)
-    if (!Number.isFinite(next)) return
-    this.dim = next
     this.applyFocus()
     this.requestRender()
   }
