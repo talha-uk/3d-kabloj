@@ -1,7 +1,7 @@
 {
-  "name": "kablaj",
+  "name": "3d-kabloj",
   "private": true,
-  "description": "3 boyutlu modeller için cihaz kablajı",
+  "description": "3D Kabloj. 3 boyutlu modeller için cihaz kablajı",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",

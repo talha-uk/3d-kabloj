@@ -118,7 +118,7 @@ export function downloadProject(state) {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' })
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)
-  link.download = `${state.name || 'kablaj'}.json`
+  link.download = `${state.name || '3d-kabloj'}.json`
   link.click()
   URL.revokeObjectURL(link.href)
 }
