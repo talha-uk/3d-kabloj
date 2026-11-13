@@ -3,7 +3,7 @@ import { bindTabs, bindToolbar } from './keys.js'
 
 const HINT = {
   sec: 'Parçaya veya kabloya tıkla. Boş alanda sürükleyince kamera döner.',
-  tasi: 'Okları tutunca parça gider. Izgara çizgisine yaklaşınca yumuşakça hizalanır.',
+  tasi: 'Parçayı oklarla taşı. Portu tutup model yüzeyinde kaydır.',
   dondur: 'Parçayı tutup çevir. 15 derecelik açılarda hafifçe tutulur.',
   port: 'İncelemede yüzeye tıkla. RF SMA, RF N, USB 2.0, USB 3.0, USB Type-C, Ethernet veya Güç.',
   kablo: 'Kablo yerleştir: önce bir port, sonra öteki. Seçili kabloya orta tuşla kıvrım ekle.'

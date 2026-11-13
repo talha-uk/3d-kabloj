@@ -272,6 +272,12 @@ export class View {
     canvas.addEventListener('pointerdown', (event) => {
       if (event.button !== 0) return
       this.setPointer(event)
+      if (this.tool !== 'kablo' && this.tool !== 'dondur' && this.portUnderPointer()) {
+        this.orbit.enabled = false
+        this.transform.enabled = false
+        this.holdingSurface = true
+        return
+      }
       if (this.bendUnderPointer()) {
         this.orbit.enabled = false
         this.transform.enabled = false
@@ -312,7 +318,7 @@ export class View {
     window.addEventListener('pointerup', () => {
       this.transform.enabled = true
       this.holdingGizmo = false
-      if (!this.transform.dragging && !this.bendDrag && this.mode !== 'sema') this.orbit.enabled = true
+      if (!this.transform.dragging && !this.bendDrag && !this.surfaceDrag && this.mode !== 'sema') this.orbit.enabled = true
     })
     canvas.addEventListener('pointerdown', (event) => {
       if (event.button === 1) {
@@ -893,6 +899,11 @@ export class View {
       }
     }
     const rotate = this.tool === 'dondur'
+    if (this.selection?.kind === 'port' && !rotate) {
+      this.transform.detach()
+      this.setBox(group)
+      return
+    }
     const editing = Boolean(group) && this.tool !== 'kablo'
     if (!editing) {
       this.transform.detach()
@@ -1068,6 +1079,15 @@ export class View {
         started: false
       }
     }
+    if (this.tool !== 'kablo' && this.tool !== 'dondur' && hit?.kind === 'port') {
+      const pivot = this.pivots.get(`${hit.componentId}:${hit.portId}`)
+      const visual = pivot && this.portSurface(pivot)
+      if (pivot && visual) {
+        const normal = new THREE.Vector3(0, 1, 0).applyQuaternion(pivot.quaternion).normalize()
+        this.surfaceDrag = { pivot, visual, roll: portRoll(pivot.quaternion, normal), started: false }
+        this.orbit.enabled = false
+      }
+    }
     if (hit?.kind === 'bend') {
       const cable = this.state.cables.find((item) => item.id === hit.cableId)
       const a = cable && this.portFrame(cable.a.componentId, cable.a.portId)
@@ -1086,6 +1106,10 @@ export class View {
 
   onMove(event) {
     this.setPointer(event)
+    if (this.surfaceDrag && this.down) {
+      this.dragPortOnSurface(event)
+      return
+    }
     if (this.yawDrag && this.down) {
       this.dragYaw(event)
       return
@@ -1242,6 +1266,17 @@ export class View {
   onUp(event) {
     if (!this.down) return
     const moved = Math.hypot(event.clientX - this.down.x, event.clientY - this.down.y) > 4
+    if (this.surfaceDrag?.started) {
+      const drag = this.surfaceDrag
+      this.surfaceDrag = null
+      this.commitPose(drag.pivot)
+      this.hooks.onSelect?.({ kind: 'port', componentId: drag.pivot.userData.componentId, portId: drag.pivot.userData.portId })
+      if (this.mode !== 'sema') this.orbit.enabled = true
+      this.down = null
+      this.pan = null
+      return
+    }
+    this.surfaceDrag = null
     if (this.yawDrag) {
       if (this.yawDrag.started) this.commitPose()
       this.yawDrag = null
@@ -1348,8 +1383,45 @@ export class View {
     this.requestRender()
   }
 
-  commitPose() {
-    const group = this.transform.object
+  portUnderPointer() {
+    this.raycaster.setFromCamera(this.pointer, this.activeCamera())
+    const root = this.mode === 'incele' ? this.inspectRoot : this.pickRoot
+    return this.raycaster.intersectObject(root, true).find((hit) => hit.object.userData.kind === 'port') || null
+  }
+
+  portSurface(pivot) {
+    const align = pivot.parent
+    if (!align) return null
+    return align.children.find((child) => !child.userData.pivot) || null
+  }
+
+  dragPortOnSurface(event) {
+    const drag = this.surfaceDrag
+    if (Math.hypot(event.clientX - this.down.x, event.clientY - this.down.y) < 3 && !drag.started) return
+    if (!drag.started) {
+      drag.started = true
+      this.orbit.enabled = false
+      this.hooks.onPoseStart?.()
+    }
+    this.raycaster.setFromCamera(this.pointer, this.activeCamera())
+    const hit = this.raycaster.intersectObject(drag.visual, true).find((item) => item.face)
+    if (!hit) return
+    const align = drag.pivot.parent
+    const inverse = align.matrixWorld.clone().invert()
+    const point = hit.point.clone().applyMatrix4(inverse)
+    const worldNormal = hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize()
+    const towardCamera = this.activeCamera().position.clone().sub(hit.point).normalize()
+    if (worldNormal.dot(towardCamera) < 0) worldNormal.negate()
+    const normal = worldNormal.clone().transformDirection(inverse).normalize()
+    drag.pivot.position.copy(point)
+    drag.pivot.quaternion.copy(portOrientation(normal, drag.roll))
+    drag.pivot.updateMatrixWorld(true)
+    this.syncCables()
+    this.requestRender()
+  }
+
+  commitPose(target) {
+    const group = target || this.transform.object
     if (!group) return
     if (group.userData.pivot) {
       const normal = new THREE.Vector3(0, 1, 0).applyQuaternion(group.quaternion).normalize()
