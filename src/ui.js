@@ -104,7 +104,7 @@ export function mount(hooks) {
     const showEmpty = ui.mode === 'incele' ? !ui.inspectId : state.components.length === 0
     bos.hidden = !showEmpty
     bos.textContent = ui.mode === 'incele'
-      ? 'Portun dış yüzeyine tıkla ve türünü seç.'
+      ? 'Porta tıkla. Yeni port için Port işaretle, sonra yüzeye tıkla.'
       : 'Modeli incele, port işaretle, sahneye koy, kablo yerleştir.'
 
     modeller.replaceChildren()
@@ -267,7 +267,7 @@ export function mount(hooks) {
     const note = document.createElement('p')
     note.className = 'not'
     note.textContent = ui.mode === 'incele'
-      ? 'Modelin bir parçasına gelince geri kalan kararır.'
+      ? 'Porta tıklayınca seçilir. Model görünür kalır.'
       : 'Listeden veya sahneden bir parça seç.'
     secili.append(note)
   }

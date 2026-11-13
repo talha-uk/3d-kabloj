@@ -692,7 +692,10 @@ export class View {
       }
       return
     }
-    if (this.inspectRoot.userData.signature === signature && this.inspectRoot.children.length) return
+    if (this.inspectRoot.userData.signature === signature && this.inspectRoot.children.length) {
+      this.indexPivots(this.inspectRoot)
+      return
+    }
     const keepCamera = this.inspectRoot.userData.modelId === modelId && this.inspectRoot.children.length > 0
     this.clearGroup(this.inspectRoot)
     this.inspectRoot.userData.signature = signature
@@ -712,6 +715,7 @@ export class View {
     align.add(visual)
     for (const port of ports) align.add(this.makePort({ id: 'incele' }, port, fit.s))
     this.inspectRoot.add(align)
+    this.indexPivots(this.inspectRoot)
     if (!keepCamera) this.frameObject(this.inspectRoot)
   }
 
@@ -976,7 +980,10 @@ export class View {
       root.traverse((object) => {
         if (!object.isMesh || object.userData.kind !== 'port' || !object.material?.emissive) return
         const key = `${object.userData.componentId}:${object.userData.portId}`
-        const on = Boolean(focus?.portFocus) && (focus.ports.has(key) || focus.anyPort.has(object.userData.portId))
+        const selected = this.selection?.kind === 'port'
+          && object.userData.portId === this.selection.portId
+          && object.userData.componentId === this.selection.componentId
+        const on = selected || (Boolean(focus?.portFocus) && (focus.ports.has(key) || focus.anyPort.has(object.userData.portId)))
         if (!on) return
         object.material.emissive.set(0x8a5a18)
         object.material.emissiveIntensity = 0.35
@@ -985,7 +992,7 @@ export class View {
   }
 
   meshLit(object, focus) {
-    if (!focus) return true
+    if (!focus || this.mode === 'incele') return true
     const kind = object.userData.kind
     if (focus.submesh) return object === focus.submesh
     if (focus.portFocus) return true
@@ -1006,6 +1013,7 @@ export class View {
     const center = box.getCenter(new THREE.Vector3())
     const size = box.getSize(new THREE.Vector3())
     const radius = Math.max(size.x, size.y, size.z) * 1.35 || 1
+    if (!Number.isFinite(center.x + center.y + center.z + radius)) return
     this.orbit.target.copy(center)
     this.perspective.up.set(0, 1, 0)
     this.perspective.position.set(center.x + radius * 0.75, center.y + radius * 0.55, center.z + radius)
@@ -1058,13 +1066,18 @@ export class View {
       const data = bendHit.object.userData
       return { ...data, point: bendHit.point, face: bendHit.face, object: bendHit.object }
     }
+    let chosen = null
+    let portHit = null
     for (const hit of all) {
-      const data = hit.object.userData
-      if (!data.kind) continue
-      if (data.kind === 'submesh') return { kind: 'submesh', mesh: hit.object, point: hit.point, face: hit.face, object: hit.object }
-      return { ...data, point: hit.point, face: hit.face, object: hit.object }
+      if (!hit.object.userData.kind) continue
+      if (!chosen) chosen = hit
+      if (!portHit && hit.object.userData.kind === 'port') portHit = hit
     }
-    return null
+    const hit = portHit && chosen && portHit.distance <= chosen.distance + 0.04 ? portHit : chosen
+    if (!hit) return null
+    const data = hit.object.userData
+    if (data.kind === 'submesh') return { kind: 'submesh', mesh: hit.object, point: hit.point, face: hit.face, object: hit.object }
+    return { ...data, point: hit.point, face: hit.face, object: hit.object }
   }
 
   hitKey(hit) {
@@ -1310,7 +1323,7 @@ export class View {
 
   click(hit) {
     if (this.mode === 'incele' && hit?.kind === 'submesh') {
-      this.createModelPort(hit)
+      if (this.tool === 'port') this.createModelPort(hit)
       return
     }
     if (this.mode === 'incele' && hit?.kind === 'port' && this.tool !== 'kablo') {
