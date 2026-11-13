@@ -22,6 +22,49 @@ const CABLE_COLOR = {
   diger: 0xc4a35a
 }
 
+function ownedBox(width, height, depth) {
+  const geometry = new THREE.BoxGeometry(width, height, depth)
+  geometry.userData.owned = true
+  return geometry
+}
+
+function tagPort(mesh, component, port) {
+  mesh.userData.kind = 'port'
+  mesh.userData.componentId = component.id
+  mesh.userData.portId = port.id
+  mesh.castShadow = true
+  return mesh
+}
+
+function addEthernetPort(pivot, radius, height, lift, component, port) {
+  const width = radius * 2.7
+  const face = radius * 2.25
+  const depth = height
+  const shell = remember(new THREE.MeshStandardMaterial({ color: 0xc5ccd1, metalness: 0.78, roughness: 0.28 }))
+  const plastic = remember(new THREE.MeshStandardMaterial({ color: 0x1a1c1f, metalness: 0.04, roughness: 0.58 }))
+  const cavity = remember(new THREE.MeshStandardMaterial({ color: 0x050607, metalness: 0.08, roughness: 0.82 }))
+  const gold = remember(new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.92, roughness: 0.22 }))
+  const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(pivot.quaternion.clone().invert())
+  const up = Math.abs(localUp.z) >= Math.abs(localUp.x) ? Math.sign(localUp.z) || 1 : 1
+  const bezel = tagPort(new THREE.Mesh(ownedBox(width * 1.16, depth * 0.14, face * 1.16), shell), component, port)
+  bezel.position.y = lift + depth * 0.07
+  const body = tagPort(new THREE.Mesh(ownedBox(width, depth * 0.62, face), shell), component, port)
+  body.position.y = lift + depth * 0.42
+  const nose = tagPort(new THREE.Mesh(ownedBox(width * 0.76, depth * 0.26, face * 0.7), plastic), component, port)
+  nose.position.y = lift + depth * 0.78
+  const mouth = tagPort(new THREE.Mesh(ownedBox(width * 0.58, depth * 0.07, face * 0.4), cavity), component, port)
+  mouth.position.set(0, lift + depth * 0.9, -up * face * 0.05)
+  const latch = tagPort(new THREE.Mesh(ownedBox(width * 0.26, depth * 0.2, face * 0.11), plastic), component, port)
+  latch.position.set(0, lift + depth * 0.88, up * face * 0.3)
+  pivot.add(bezel, body, nose, mouth, latch)
+  const span = width * 0.48
+  for (let pin = 0; pin < 8; pin += 1) {
+    const contact = tagPort(new THREE.Mesh(ownedBox(width * 0.032, depth * 0.045, face * 0.14), gold), component, port)
+    contact.position.set(-span / 2 + (span / 7) * pin, lift + depth * 0.94, -up * face * 0.16)
+    pivot.add(contact)
+  }
+}
+
 function portProfile(type, radius) {
   if (type === 'ag') return { kind: 'box', width: radius * 2.35, breadth: radius * 2.35 }
   if (type === 'usb' || type === 'usb2' || type === 'usb3') return { kind: 'box', width: radius * 3.4, breadth: radius * 1.2 }
@@ -556,6 +599,10 @@ export class View {
     const bulk = port.type === 'ntype' ? 1.85 : port.type === 'sma' || port.type === 'rf' ? 0.72 : 1
     const radius = 0.016 / fitScale * bulk
     const height = 0.042 / fitScale * (port.type === 'ntype' ? 1.35 : 1)
+    if (port.type === 'ag') {
+      addEthernetPort(pivot, radius, height, lift, component, port)
+      return pivot
+    }
     const profile = portProfile(port.type, radius)
     const marker = {
       sma: 0xd4af37,
